@@ -1,0 +1,60 @@
+name: Auto Draft PR for Feature Branches
+
+on:
+  push:
+    branches:
+      - "feature/*"
+
+jobs:
+  create-draft-pr:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Construct PR Title from Branch Name and Commit Message
+        id: construct_pr_title
+        run: |
+          # Get the latest commit message
+          COMMIT_MSG=$(git log -1 --pretty=%B | tr -d '\n')
+
+          # Get the ticket number from branch name
+          TICKET=$(echo "${{ github.ref_name }}" | grep -oP 'TDEV-\d+')
+
+          # Extract the commit message after the ticket
+          MESSAGE=$(echo "$COMMIT_MSG" | sed -E 's/TDEV-[0-9]+[.:]? *//')
+
+          # Ensure fallback title if message is empty
+          if [[ -z "$MESSAGE" ]]; then
+            MESSAGE="Merge into develop"
+          fi
+
+          # Construct PR title
+          PR_TITLE="$TICKET $MESSAGE"
+
+          echo "PR_TITLE=$PR_TITLE" >> "$GITHUB_ENV"
+
+      - name: Check if PR already exists
+        id: pr_check
+        run: |
+          PR_URL=$(gh pr list --state open --head "${{ github.ref_name }}" --json url --jq '.[0].url')
+          if [[ -n "$PR_URL" ]]; then
+            echo "PR already exists: $PR_URL"
+            echo "exists=true" >> "$GITHUB_ENV"
+          else
+            echo "exists=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Create Draft Pull Request
+        if: env.exists == 'false'
+        run: |
+          gh pr create --title "${{ env.PR_TITLE }}" \
+            --body "This is an automatically created draft PR for the feature branch ${{ github.ref_name }}." \
+            --base "develop" \
+            --head "${{ github.ref_name }}" \
+            --draft
+          
