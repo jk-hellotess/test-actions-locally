@@ -36,10 +36,10 @@ jobs:
 
       - name: Merge Translation into Develop
         run: |
-          git pull origin develop-test
+          git pull origin develop
           git merge origin/translation --no-ff --commit --message "Auto-merge translation into develop"
         
       - name: Push Changes to Develop
         run: |
-          git push origin develop-test
+          git push origin develop
 
