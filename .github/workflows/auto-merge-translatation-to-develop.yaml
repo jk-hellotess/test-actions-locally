@@ -1,4 +1,4 @@
-name: Auto PR and Merge for Translation Branch
+name: Auto Merge for Translation Branch
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - "translation"
 
 jobs:
-  create-pr-and-merge:
+  auto-merge-into-develop:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/create-github-app-token@v1
